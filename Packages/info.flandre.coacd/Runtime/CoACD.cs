@@ -18,19 +18,20 @@ public unsafe class CoACD : MonoBehaviour
 	public struct MeshInterface
 	{
 		public double* vertices_ptr;
-		public ulong   vertices_count;
-		public int*    triangles_ptr;
-		public ulong   triangles_count;
+		public ulong vertices_count;
+		public int* triangles_ptr;
+		public ulong triangles_count;
 	}
 	[Serializable]
 	public struct MeshArrayInterface : IDisposable
 	{
 		public MeshInterface* meshes_ptr;
-		public ulong          meshes_count;
+		public ulong meshes_count;
 
 		public void Dispose()
 		{
-			if (meshes_ptr != null) {
+			if (meshes_ptr != null)
+			{
 				Free(this);
 				meshes_ptr = null;
 			}
@@ -57,10 +58,20 @@ public unsafe class CoACD : MonoBehaviour
 	[Serializable]
 	public unsafe struct Parameters
 	{
-		public static Parameters Init() => new Parameters() {
-																													threshold = 0.05, preprocessMode = PreprocessMode.Auto, preprocessResolution = 50, sampleResolution = 2000,
-																													mctsNodes = 20, mctsIteration    = 150, mctsMaxDepth = 3, pca = false, merge = true, maxConvexHull = -1, seed = 0
-																												};
+		public static Parameters Init() => new Parameters()
+		{
+			threshold = 0.05,
+			preprocessMode = PreprocessMode.Auto,
+			preprocessResolution = 50,
+			sampleResolution = 2000,
+			mctsNodes = 20,
+			mctsIteration = 150,
+			mctsMaxDepth = 3,
+			pca = false,
+			merge = true,
+			maxConvexHull = -1,
+			seed = 0
+		};
 
 		[Range(0.01f, 1f)]
 		[Tooltip("concavity threshold for terminating the decomposition")]
@@ -118,25 +129,30 @@ public unsafe class CoACD : MonoBehaviour
 	{
 		var unityV = mesh.vertices;
 		var unityF = mesh.triangles;
-		var v      = new double[mesh.vertexCount * 3];
-		for (var i = 0; i < mesh.vertexCount; i++) {
+		var v = new double[mesh.vertexCount * 3];
+		for (var i = 0; i < mesh.vertexCount; i++)
+		{
 			v[3 * i + 0] = unityV[i].x;
 			v[3 * i + 1] = unityV[i].y;
 			v[3 * i + 2] = unityV[i].z;
 		}
-		fixed (double* vptr = v) {
-			fixed (int* fptr = unityF) {
-				var mi = new MeshInterface() {vertices_ptr = vptr, vertices_count = (ulong) mesh.vertexCount, triangles_ptr = fptr, triangles_count = (ulong) (unityF.LongLength / 3)};
-				using var res = Run(ref mi, parameters.threshold, parameters.maxConvexHull, (int) parameters.preprocessMode, parameters.preprocessResolution, parameters.sampleResolution,
+		fixed (double* vptr = v)
+		{
+			fixed (int* fptr = unityF)
+			{
+				var mi = new MeshInterface() { vertices_ptr = vptr, vertices_count = (ulong)mesh.vertexCount, triangles_ptr = fptr, triangles_count = (ulong)(unityF.LongLength / 3) };
+				using var res = Run(ref mi, parameters.threshold, parameters.maxConvexHull, (int)parameters.preprocessMode, parameters.preprocessResolution, parameters.sampleResolution,
 					parameters.mctsNodes, parameters.mctsIteration, parameters.mctsMaxDepth, parameters.pca, parameters.merge, parameters.seed);
 				var meshes = new List<Mesh>();
-				for (ulong i = 0; i < res.meshes_count; i++) {
+				for (ulong i = 0; i < res.meshes_count; i++)
+				{
 					var rmesh = new Mesh();
 					var verts = new Vector3[res.meshes_ptr[i].vertices_count];
-					var tris  = new int[res.meshes_ptr[i].triangles_count * 3];
-					for (ulong j = 0; j < res.meshes_ptr[i].vertices_count; j++) {
-						verts[j] = new Vector3((float) res.meshes_ptr[i].vertices_ptr[j * 3 + 0], (float) res.meshes_ptr[i].vertices_ptr[j * 3 + 1],
-							(float) res.meshes_ptr[i].vertices_ptr[j * 3 + 2]);
+					var tris = new int[res.meshes_ptr[i].triangles_count * 3];
+					for (ulong j = 0; j < res.meshes_ptr[i].vertices_count; j++)
+					{
+						verts[j] = new Vector3((float)res.meshes_ptr[i].vertices_ptr[j * 3 + 0], (float)res.meshes_ptr[i].vertices_ptr[j * 3 + 1],
+							(float)res.meshes_ptr[i].vertices_ptr[j * 3 + 2]);
 					}
 					for (ulong j = 0; j < res.meshes_ptr[i].triangles_count * 3; j++) { tris[j] = res.meshes_ptr[i].triangles_ptr[j]; }
 					rmesh.SetVertices(verts);
@@ -161,7 +177,7 @@ public unsafe class CoACD : MonoBehaviour
 #else
 [ContextMenu("Calculate Colliders")]
 #endif
-	void CalculateColliders()
+	public void CalculateColliders()
 	{
 		var  parameters    = this.parameters;
 		var  baseTransform = transform;
@@ -278,33 +294,36 @@ public unsafe class CoACD : MonoBehaviour
 
 	void OnDestroy()
 	{
-		if (_colliders.Count > 0) {
-			foreach (var c in _colliders) {
-				if (c) {
+		if (_colliders.Count > 0)
+		{
+			foreach (var c in _colliders)
+			{
+				if (c)
+				{
 					if (Application.isPlaying) { Destroy(c); }
-				#if UNITY_EDITOR
+#if UNITY_EDITOR
 					else {
 						EditorApplication.delayCall += () =>
 																					{
 																						if (c && !Application.isPlaying) { DestroyImmediate(c); }
 																					};
 					}
-				#endif
+#endif
 				}
 			}
 		}
 		_colliders.Clear();
-	#if UNITY_EDITOR
+#if UNITY_EDITOR
 		EditorUtility.SetDirty(gameObject);
-	#endif
+#endif
 	}
 }
 //stores convex mesh assets
 public class CoACDColliderData : ScriptableObject
 {
 	public CoACD.Parameters parameters;
-	public Mesh[]           baseMeshes     = new Mesh[0];
-	public Mesh[]           computedMeshes = new Mesh[0];
+	public Mesh[] baseMeshes = new Mesh[0];
+	public Mesh[] computedMeshes = new Mesh[0];
 #if UNITY_EDITOR
 
 	public static CoACDColliderData CreateAsset(string path, CoACD.Parameters parameters, Mesh[] meshes, Mesh[] baseMeshes)
